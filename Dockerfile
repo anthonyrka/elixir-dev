@@ -2,15 +2,16 @@ FROM erlang:24-slim
 
 USER root
 
+RUN apt-get update && apt-get upgrade -y
+RUN apt-get install -y \
+        vim \
+        git
+
 # elixir expects utf8.
 ENV ELIXIR_VERSION="v1.13.0" \
 	LANG=C.UTF-8
 
-RUN apt-get update && apt-get upgrade -y
-RUN apt-get install -y \
-        vim \
-        git \
-        openssl
+RUN mkdir -p ~/.vim/autoload ~/.vim/bundle 
 
 ENV GIT_SSL_NO_VERIFY=1
 
@@ -21,10 +22,13 @@ RUN set -xe \
 		ca-certificates \
 		curl \
 		make \
+                git \
 	' \
 	&& apt-get update \
 	&& apt-get install -y --no-install-recommends $buildDeps \
-	&& curl -fSL -o elixir-src.tar.gz $ELIXIR_DOWNLOAD_URL \
+        && curl -LSso /root/.vim/autoload/pathogen.vim https://tpo.pe/pathogen.vim \
+        && git clone https://github.com/elixir-editors/vim-elixir.git ~/.vim/bundle/vim-elixir \
+        && curl -fSL -o elixir-src.tar.gz $ELIXIR_DOWNLOAD_URL \
 	&& echo "$ELIXIR_DOWNLOAD_SHA256  elixir-src.tar.gz" | sha256sum -c - \
 	&& mkdir -p /usr/local/src/elixir \
 	&& tar -xzC /usr/local/src/elixir --strip-components=1 -f elixir-src.tar.gz \
@@ -37,5 +41,6 @@ RUN set -xe \
 	&& rm -rf /var/lib/apt/lists/*
 
 COPY test.vimrc /root/.vimrc
-WORKDIR root/
+WORKDIR root
+
 CMD ["iex"]
